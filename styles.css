@@ -1,0 +1,237 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f7fa;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.add-link-section {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+}
+
+.add-link-section h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #555;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.form-group textarea {
+    height: 80px;
+    resize: vertical;
+}
+
+button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.links-section h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+.link-item {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+}
+
+.link-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.link-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.link-name {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.link-url {
+    color: #667eea;
+    text-decoration: none;
+    word-break: break-all;
+    display: block;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.link-url:hover {
+    text-decoration: underline;
+}
+
+.link-remark {
+    color: #666;
+    font-style: italic;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.delete-btn {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: transform 0.2s;
+}
+
+.delete-btn:hover {
+    transform: scale(1.05);
+}
+
+.edit-btn {
+    background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-right: 8px;
+    transition: transform 0.2s;
+}
+
+.edit-btn:hover {
+    transform: scale(1.05);
+}
+
+.edit-form {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.edit-form .form-group {
+    margin-bottom: 10px;
+}
+
+.edit-form button {
+    margin-right: 10px;
+    padding: 8px 15px;
+    font-size: 14px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #888;
+    font-style: italic;
+}
+
+.empty-state p {
+    margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    .link-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .link-actions {
+        margin-top: 10px;
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+    }
+}
