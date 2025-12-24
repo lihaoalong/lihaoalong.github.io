@@ -3,21 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>自建服务与个人博客 - 数据同步版</title>
+    <title>自建服务与个人博客 - 全自动同步版</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>自建服务与个人博客 - 数据同步版</h1>
-            <p>链接管理 | 博客备忘录 | 数据同步</p>
+            <h1>自建服务与个人博客 - 全自动同步版</h1>
+            <p>链接管理 | 博客备忘录 | 全自动同步</p>
         </header>
 
         <div class="sync-info">
-            <p>当前数据状态：本地存储</p>
-            <button id="syncFromRemote">从云端同步数据</button>
-            <button id="syncToRemote">保存数据到云端</button>
-            <p class="sync-note">注意：数据同步需要通过GitHub仓库手动更新</p>
+            <div class="sync-status">
+                <p>状态: <span id="statusText">就绪</span></p>
+                <div id="statusIndicator" class="status-indicator ready"></div>
+            </div>
+            <div class="token-input">
+                <label for="githubToken">GitHub Token:</label>
+                <input type="password" id="githubToken" placeholder="输入您的GitHub Personal Access Token">
+                <button id="setToken">设置Token</button>
+            </div>
+            <div class="gist-info">
+                <label for="gistId">Gist ID (留空则创建新的):</label>
+                <input type="text" id="gistId" placeholder="如果已有Gist，输入其ID">
+            </div>
+            <button id="syncRemoteData">从云端同步数据</button>
+            <button id="saveRemoteData">保存到云端 (全自动)</button>
+            <p class="sync-note">注意：需要设置GitHub Token才能实现全自动同步</p>
         </div>
 
         <!-- 博客备忘录部分 -->
@@ -53,7 +65,7 @@
         <!-- 分隔线 -->
         <hr class="divider">
 
-        <!-- 原有的链接管理部分 -->
+        <!-- 链接管理部分 -->
         <div class="add-link-section">
             <h2>自建服务链接管理</h2>
             <form id="linkForm">
@@ -81,6 +93,6 @@
         </div>
     </div>
 
-    <script src="data_sync_script.js"></script>
+    <script src="fully_auto_sync_script.js"></script>
 </body>
 </html>
