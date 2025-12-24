@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自建服务与个人博客 - 数据同步版</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>自建服务与个人博客 - 数据同步版</h1>
+            <p>链接管理 | 博客备忘录 | 数据同步</p>
+        </header>
+
+        <div class="sync-info">
+            <p>当前数据状态：本地存储</p>
+            <button id="syncFromRemote">从云端同步数据</button>
+            <button id="syncToRemote">保存数据到云端</button>
+            <p class="sync-note">注意：数据同步需要通过GitHub仓库手动更新</p>
+        </div>
+
+        <!-- 博客备忘录部分 -->
+        <div class="blog-section">
+            <h2>个人博客备忘录</h2>
+            <form id="blogForm">
+                <div class="form-group">
+                    <label for="blogTitle">标题:</label>
+                    <input type="text" id="blogTitle" required placeholder="输入博客标题">
+                </div>
+                <div class="form-group">
+                    <label for="blogContent">内容:</label>
+                    <textarea id="blogContent" required placeholder="输入备忘录内容..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="blogCategory">分类:</label>
+                    <select id="blogCategory">
+                        <option value="工作">工作</option>
+                        <option value="生活">生活</option>
+                        <option value="技术">技术</option>
+                        <option value="学习">学习</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                <button type="submit">发布备忘录</button>
+            </form>
+
+            <div id="blogPostsContainer">
+                <!-- 博客文章将通过JavaScript动态添加 -->
+            </div>
+        </div>
+
+        <!-- 分隔线 -->
+        <hr class="divider">
+
+        <!-- 原有的链接管理部分 -->
+        <div class="add-link-section">
+            <h2>自建服务链接管理</h2>
+            <form id="linkForm">
+                <div class="form-group">
+                    <label for="linkName">链接名称:</label>
+                    <input type="text" id="linkName" required placeholder="例如：xui 节点">
+                </div>
+                <div class="form-group">
+                    <label for="linkUrl">链接地址:</label>
+                    <input type="url" id="linkUrl" required placeholder="例如：https://example.com">
+                </div>
+                <div class="form-group">
+                    <label for="linkRemark">备注:</label>
+                    <textarea id="linkRemark" placeholder="可选备注信息"></textarea>
+                </div>
+                <button type="submit">添加链接</button>
+            </form>
+        </div>
+
+        <div class="links-section">
+            <h2>我的链接列表</h2>
+            <div id="linksContainer">
+                <!-- 链接将通过JavaScript动态添加 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="data_sync_script.js"></script>
+</body>
+</html>
