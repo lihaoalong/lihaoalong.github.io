@@ -359,7 +359,8 @@
                 this.links = this.loadLinks();
                 this.blogPosts = this.loadBlogPosts();
                 // 使用浏览器存储的同步令牌，确保跨设备识别
-                this.syncToken = localStorage.getItem('syncToken') || this.generateSyncToken();
+                // 使用固定同步令牌，确保所有设备访问相同数据
+                this.syncToken = 'blog_sync_shared_data';
                 if (!localStorage.getItem('syncToken')) {
                     localStorage.setItem('syncToken', this.syncToken);
                 }
