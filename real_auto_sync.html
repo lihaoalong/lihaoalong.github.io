@@ -352,7 +352,25 @@
         // 初始化Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        
+        // 在Firebase初始化后添加身份验证
+        const auth = firebase.auth();
+
+        // 登录或创建用户
+        function signInOrCreateUser() {
+        // 使用临时匿名登录或邮箱登录
+          return auth.signInAnonymously();
+        }
+
+       // 在构造函数中调用
+       constructor() {
+        // 等待身份验证完成
+        auth.onAuthStateChanged((user) => {
+          if (user) {
+            this.syncToken = user.uid; // 使用用户ID作为同步令牌
+            this.autoSync(); // 开始同步
+          }
+        });
+       }
         // 真正自动同步管理器
         class RealAutoSyncManager {
             constructor() {
