@@ -7,6 +7,7 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -92,6 +93,28 @@
             background-color: #d1ecf1;
             color: #0c5460;
             border: 1px solid #bee5eb;
+        }
+
+        .auth-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .auth-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .auth-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            font-size: 0.9rem;
         }
 
         .form-group {
@@ -264,6 +287,15 @@
             <p>在线编辑，自动同步到所有设备</p>
         </header>
 
+        <div class="auth-section">
+            <h2>身份验证</h2>
+            <div class="auth-controls">
+                <button id="signInBtn" class="btn-sync">登录</button>
+                <button id="signOutBtn" class="btn-delete">登出</button>
+                <div id="authStatus" class="auth-info">状态: 未登录</div>
+            </div>
+        </div>
+
         <div class="auto-sync-note">
             <strong>提示：</strong>每次添加、编辑或删除数据后，系统会自动同步到云端，其他设备访问时会自动获取最新数据。
         </div>
@@ -352,31 +384,13 @@
         // 初始化Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        // 在Firebase初始化后添加身份验证
         const auth = firebase.auth();
-
-        // 登录或创建用户
-        function signInOrCreateUser() {
-        // 使用临时匿名登录或邮箱登录
-          return auth.signInAnonymously();
-        }
-
-       // 在构造函数中调用
-       constructor() {
-        // 等待身份验证完成
-        auth.onAuthStateChanged((user) => {
-          if (user) {
-            this.syncToken = user.uid; // 使用用户ID作为同步令牌
-            this.autoSync(); // 开始同步
-          }
-        });
-       }
+        
         // 真正自动同步管理器
         class RealAutoSyncManager {
             constructor() {
                 this.links = this.loadLinks();
                 this.blogPosts = this.loadBlogPosts();
-                // 使用浏览器存储的同步令牌，确保跨设备识别
                 // 使用固定同步令牌，确保所有设备访问相同数据
                 this.syncToken = 'blog_sync_shared_data';
                 if (!localStorage.getItem('syncToken')) {
@@ -384,6 +398,7 @@
                 }
                 
                 this.lastSyncTime = localStorage.getItem('lastSyncTime') || 0;
+                this.currentUser = null;
                 this.init();
             }
 
@@ -393,13 +408,76 @@
                 this.updateLastSyncTime();
                 this.bindEvents();
                 
-                // 页面加载时自动同步最新数据
-                this.autoSync();
+                // 监听身份验证状态变化
+                auth.onAuthStateChanged((user) => {
+                    this.currentUser = user;
+                    if (user) {
+                        document.getElementById('authStatus').textContent = `状态: 已登录 (${user.uid})`;
+                        // 用户登录后开始同步
+                        this.autoSync();
+                    } else {
+                        document.getElementById('authStatus').textContent = '状态: 未登录';
+                        this.showStatus('请先登录以使用同步功能', 'error');
+                    }
+                });
             }
 
-            // 生成同步令牌
-            generateSyncToken() {
-                return 'sync_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            // 绑定事件
+            bindEvents() {
+                // 博客表单提交事件
+                const blogForm = document.getElementById('blogForm');
+                blogForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addBlogPost();
+                });
+
+                // 链接表单提交事件
+                const linkForm = document.getElementById('linkForm');
+                linkForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addLink();
+                });
+
+                // 登录/登出按钮事件
+                document.getElementById('signInBtn').addEventListener('click', () => {
+                    this.signIn();
+                });
+                
+                document.getElementById('signOutBtn').addEventListener('click', () => {
+                    this.signOut();
+                });
+            }
+
+            // 登录
+            async signIn() {
+                this.showStatus('正在登录...', 'loading');
+                
+                try {
+                    // 使用匿名登录，无需邮箱密码
+                    await auth.signInAnonymously();
+                    this.showStatus('登录成功！', 'success');
+                } catch (error) {
+                    this.showStatus('登录失败: ' + error.message, 'error');
+                }
+            }
+
+            // 登出
+            async signOut() {
+                try {
+                    await auth.signOut();
+                    this.showStatus('已登出', 'success');
+                } catch (error) {
+                    this.showStatus('登出失败: ' + error.message, 'error');
+                }
+            }
+
+            // 检查用户是否已登录
+            checkAuth() {
+                if (!this.currentUser) {
+                    this.showStatus('请先登录以使用同步功能', 'error');
+                    return false;
+                }
+                return true;
             }
 
             // 加载本地存储的链接
@@ -439,25 +517,10 @@
                 localStorage.setItem('blogPosts', JSON.stringify(this.blogPosts));
             }
 
-            // 绑定事件
-            bindEvents() {
-                // 博客表单提交事件
-                const blogForm = document.getElementById('blogForm');
-                blogForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    this.addBlogPost();
-                });
-
-                // 链接表单提交事件
-                const linkForm = document.getElementById('linkForm');
-                linkForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    this.addLink();
-                });
-            }
-
             // 自动同步 - 检查是否有更新的数据
             async autoSync() {
+                if (!this.checkAuth()) return;
+                
                 try {
                     // 尝试从云端获取最新数据
                     const cloudData = await this.fetchFromCloud();
@@ -482,6 +545,8 @@
 
             // 从云端同步数据
             async syncFromCloud() {
+                if (!this.checkAuth()) return;
+                
                 this.showStatus('正在从云端加载数据...', 'loading');
                 
                 try {
@@ -507,6 +572,8 @@
 
             // 保存数据到Firebase
             async saveToCloud() {
+                if (!this.checkAuth()) return;
+                
                 this.showStatus('正在保存到云端...', 'loading');
                 
                 const data = {
@@ -529,6 +596,8 @@
 
             // 从Firebase获取数据
             async fetchFromCloud() {
+                if (!this.checkAuth()) return null;
+                
                 try {
                     const snapshot = await database.ref('users/' + this.syncToken).once('value');
                     return snapshot.val();
@@ -642,6 +711,8 @@
 
             // 添加博客文章 - 重写以实现自动同步
             async addBlogPost() {
+                if (!this.checkAuth()) return;
+                
                 const titleInput = document.getElementById('blogTitle');
                 const contentInput = document.getElementById('blogContent');
                 const categoryInput = document.getElementById('blogCategory');
@@ -670,7 +741,7 @@
                 // 重置表单
                 titleInput.value = '';
                 contentInput.value = '';
-                categoryInput.value = '工作';
+                categoryInput.value = '';
                 
                 // 自动保存到云端
                 await this.saveToCloud();
@@ -678,6 +749,8 @@
 
             // 添加新链接 - 重写以实现自动同步
             async addLink() {
+                if (!this.checkAuth()) return;
+                
                 const nameInput = document.getElementById('linkName');
                 const urlInput = document.getElementById('linkUrl');
                 const remarkInput = document.getElementById('linkRemark');
@@ -721,6 +794,8 @@
 
             // 删除博客文章 - 重写以实现自动同步
             async deleteBlogPost(id) {
+                if (!this.checkAuth()) return;
+                
                 if (confirm('确定要删除这篇备忘录吗？')) {
                     this.blogPosts = this.blogPosts.filter(post => post.id !== id);
                     this.saveBlogPosts();
@@ -731,6 +806,8 @@
 
             // 删除链接 - 重写以实现自动同步
             async deleteLink(id) {
+                if (!this.checkAuth()) return;
+                
                 if (confirm('确定要删除这个链接吗？')) {
                     this.links = this.links.filter(link => link.id !== id);
                     this.saveLinks();
@@ -741,6 +818,8 @@
 
             // 编辑博客文章 - 重写以实现自动同步
             async editBlogPost(id) {
+                if (!this.checkAuth()) return;
+                
                 const post = this.blogPosts.find(p => p.id === id);
                 if (!post) return;
 
@@ -755,6 +834,8 @@
 
             // 编辑链接 - 重写以实现自动同步
             async editLink(id) {
+                if (!this.checkAuth()) return;
+                
                 const link = this.links.find(l => l.id === id);
                 if (!link) return;
 
