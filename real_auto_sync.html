@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>自建服务与个人博客 - 真正自动同步版</title>
+    <title>自建服务与个人博客 - 个人数据同步版</title>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -105,8 +105,16 @@
 
         .auth-controls {
             display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             align-items: center;
+        }
+
+        .auth-input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
         }
 
         .auth-info {
@@ -283,21 +291,24 @@
 <body>
     <div class="container">
         <header>
-            <h1>自建服务与个人博客 - 真正自动同步版</h1>
-            <p>在线编辑，自动同步到所有设备</p>
+            <h1>自建服务与个人博客 - 个人数据同步版</h1>
+            <p>使用个人账户，数据安全私有</p>
         </header>
 
         <div class="auth-section">
             <h2>身份验证</h2>
             <div class="auth-controls">
-                <button id="signInBtn" class="btn-sync">登录</button>
+                <input type="email" id="emailInput" class="auth-input" placeholder="邮箱">
+                <input type="password" id="passwordInput" class="auth-input" placeholder="密码">
+                <button id="signUpBtn" class="btn-sync">注册</button>
+                <button id="signInEmailBtn" class="btn-sync">登录</button>
                 <button id="signOutBtn" class="btn-delete">登出</button>
                 <div id="authStatus" class="auth-info">状态: 未登录</div>
             </div>
         </div>
 
         <div class="auto-sync-note">
-            <strong>提示：</strong>每次添加、编辑或删除数据后，系统会自动同步到云端，其他设备访问时会自动获取最新数据。
+            <strong>提示：</strong>注册或登录后，您的数据将安全地存储在云端，仅对您可见。
         </div>
 
         <div class="sync-section">
@@ -386,25 +397,18 @@
         const database = firebase.database();
         const auth = firebase.auth();
         
-        // 真正自动同步管理器
+        // 个人数据同步管理器
         class RealAutoSyncManager {
             constructor() {
-                this.links = this.loadLinks();
-                this.blogPosts = this.loadBlogPosts();
-                // 使用固定同步令牌，确保所有设备访问相同数据
-                this.syncToken = 'blog_sync_shared_data';
-                if (!localStorage.getItem('syncToken')) {
-                    localStorage.setItem('syncToken', this.syncToken);
-                }
-                
-                this.lastSyncTime = localStorage.getItem('lastSyncTime') || 0;
+                this.links = [];
+                this.blogPosts = [];
+                this.syncToken = null; // 使用用户ID作为同步令牌
+                this.lastSyncTime = 0;
                 this.currentUser = null;
                 this.init();
             }
 
             init() {
-                this.renderLinks();
-                this.renderBlogPosts();
                 this.updateLastSyncTime();
                 this.bindEvents();
                 
@@ -412,12 +416,21 @@
                 auth.onAuthStateChanged((user) => {
                     this.currentUser = user;
                     if (user) {
-                        document.getElementById('authStatus').textContent = `状态: 已登录 (${user.uid})`;
-                        // 用户登录后开始同步
+                        document.getElementById('authStatus').textContent = `状态: 已登录 (${user.email})`;
+                        // 用户登录后，使用用户ID作为同步令牌
+                        this.syncToken = user.uid;
+                        // 加载用户数据
+                        this.loadUserData();
+                        // 开始自动同步
                         this.autoSync();
                     } else {
                         document.getElementById('authStatus').textContent = '状态: 未登录';
-                        this.showStatus('请先登录以使用同步功能', 'error');
+                        this.showStatus('请登录以使用同步功能', 'error');
+                        // 重置数据
+                        this.links = [];
+                        this.blogPosts = [];
+                        this.renderLinks();
+                        this.renderBlogPosts();
                     }
                 });
             }
@@ -438,9 +451,13 @@
                     this.addLink();
                 });
 
-                // 登录/登出按钮事件
-                document.getElementById('signInBtn').addEventListener('click', () => {
-                    this.signIn();
+                // 身份验证按钮事件
+                document.getElementById('signUpBtn').addEventListener('click', () => {
+                    this.signUp();
+                });
+                
+                document.getElementById('signInEmailBtn').addEventListener('click', () => {
+                    this.signInWithEmail();
                 });
                 
                 document.getElementById('signOutBtn').addEventListener('click', () => {
@@ -448,14 +465,60 @@
                 });
             }
 
+            // 检查用户是否已登录
+            checkAuth() {
+                if (!this.currentUser) {
+                    this.showStatus('请先登录以使用同步功能', 'error');
+                    return false;
+                }
+                return true;
+            }
+
+            // 注册
+            async signUp() {
+                const email = document.getElementById('emailInput').value.trim();
+                const password = document.getElementById('passwordInput').value.trim();
+
+                if (!email || !password) {
+                    this.showStatus('请输入邮箱和密码', 'error');
+                    return;
+                }
+
+                this.showStatus('正在注册...', 'loading');
+                
+                try {
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    this.currentUser = userCredential.user;
+                    document.getElementById('authStatus').textContent = `状态: 已登录 (${userCredential.user.email})`;
+                    this.showStatus('注册成功！', 'success');
+                    
+                    // 初始化用户数据
+                    await this.initializeUserData();
+                } catch (error) {
+                    this.showStatus('注册失败: ' + error.message, 'error');
+                }
+            }
+
             // 登录
-            async signIn() {
+            async signInWithEmail() {
+                const email = document.getElementById('emailInput').value.trim();
+                const password = document.getElementById('passwordInput').value.trim();
+
+                if (!email || !password) {
+                    this.showStatus('请输入邮箱和密码', 'error');
+                    return;
+                }
+
                 this.showStatus('正在登录...', 'loading');
                 
                 try {
-                    // 使用匿名登录，无需邮箱密码
-                    await auth.signInAnonymously();
+                    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                    this.currentUser = userCredential.user;
+                    document.getElementById('authStatus').textContent = `状态: 已登录 (${userCredential.user.email})`;
                     this.showStatus('登录成功！', 'success');
+                    
+                    // 加载用户数据
+                    await this.loadUserData();
                 } catch (error) {
                     this.showStatus('登录失败: ' + error.message, 'error');
                 }
@@ -471,25 +534,55 @@
                 }
             }
 
-            // 检查用户是否已登录
-            checkAuth() {
-                if (!this.currentUser) {
-                    this.showStatus('请先登录以使用同步功能', 'error');
-                    return false;
+            // 初始化用户数据
+            async initializeUserData() {
+                if (!this.checkAuth()) return;
+                
+                const initialData = {
+                    links: this.getDefaultLinks(),
+                    blogPosts: [],
+                    timestamp: Date.now()
+                };
+                
+                try {
+                    await database.ref('users/' + this.syncToken).set(initialData);
+                    this.links = initialData.links;
+                    this.blogPosts = initialData.blogPosts;
+                    this.renderLinks();
+                    this.renderBlogPosts();
+                    this.lastSyncTime = initialData.timestamp;
+                    this.updateLastSyncTime();
+                    this.showStatus('用户数据已初始化', 'success');
+                } catch (error) {
+                    console.error('初始化用户数据失败:', error);
+                    this.showStatus('初始化失败: ' + error.message, 'error');
                 }
-                return true;
             }
 
-            // 加载本地存储的链接
-            loadLinks() {
-                const savedLinks = localStorage.getItem('serviceLinks');
-                return savedLinks ? JSON.parse(savedLinks) : this.getDefaultLinks();
-            }
-
-            // 加载本地存储的博客文章
-            loadBlogPosts() {
-                const savedPosts = localStorage.getItem('blogPosts');
-                return savedPosts ? JSON.parse(savedPosts) : [];
+            // 加载用户数据
+            async loadUserData() {
+                if (!this.checkAuth()) return;
+                
+                try {
+                    const snapshot = await database.ref('users/' + this.syncToken).once('value');
+                    const data = snapshot.val();
+                    
+                    if (data) {
+                        this.links = data.links || [];
+                        this.blogPosts = data.blogPosts || [];
+                        this.lastSyncTime = data.timestamp || 0;
+                    } else {
+                        // 如果用户没有数据，初始化默认数据
+                        await this.initializeUserData();
+                    }
+                    
+                    this.renderLinks();
+                    this.renderBlogPosts();
+                    this.updateLastSyncTime();
+                } catch (error) {
+                    console.error('加载用户数据失败:', error);
+                    this.showStatus('加载数据失败: ' + error.message, 'error');
+                }
             }
 
             // 获取默认链接
@@ -507,16 +600,6 @@
                 ];
             }
 
-            // 保存链接到本地存储
-            saveLinks() {
-                localStorage.setItem('serviceLinks', JSON.stringify(this.links));
-            }
-
-            // 保存博客文章到本地存储
-            saveBlogPosts() {
-                localStorage.setItem('blogPosts', JSON.stringify(this.blogPosts));
-            }
-
             // 自动同步 - 检查是否有更新的数据
             async autoSync() {
                 if (!this.checkAuth()) return;
@@ -528,12 +611,9 @@
                         // 云端数据更新，同步到本地
                         this.links = cloudData.links || this.links;
                         this.blogPosts = cloudData.blogPosts || this.blogPosts;
-                        this.saveLinks();
-                        this.saveBlogPosts();
                         this.renderLinks();
                         this.renderBlogPosts();
                         this.lastSyncTime = cloudData.timestamp;
-                        localStorage.setItem('lastSyncTime', this.lastSyncTime);
                         this.updateLastSyncTime();
                         this.showStatus('已同步云端最新数据', 'success');
                     }
@@ -554,12 +634,9 @@
                     if (cloudData) {
                         this.links = cloudData.links || this.links;
                         this.blogPosts = cloudData.blogPosts || this.blogPosts;
-                        this.saveLinks();
-                        this.saveBlogPosts();
                         this.renderLinks();
                         this.renderBlogPosts();
                         this.lastSyncTime = cloudData.timestamp;
-                        localStorage.setItem('lastSyncTime', this.lastSyncTime);
                         this.updateLastSyncTime();
                         this.showStatus('数据同步成功！', 'success');
                     } else {
@@ -585,7 +662,6 @@
                 try {
                     await database.ref('users/' + this.syncToken).set(data);
                     this.lastSyncTime = Date.now();
-                    localStorage.setItem('lastSyncTime', this.lastSyncTime);
                     this.updateLastSyncTime();
                     this.showStatus('数据已保存到云端！', 'success');
                 } catch (error) {
@@ -709,7 +785,7 @@
                 return text.replace(/[&<>"']/g, m => map[m]);
             }
 
-            // 添加博客文章 - 重写以实现自动同步
+            // 添加博客文章
             async addBlogPost() {
                 if (!this.checkAuth()) return;
                 
@@ -735,7 +811,6 @@
                 };
 
                 this.blogPosts.push(newPost);
-                this.saveBlogPosts();
                 this.renderBlogPosts();
 
                 // 重置表单
@@ -747,7 +822,7 @@
                 await this.saveToCloud();
             }
 
-            // 添加新链接 - 重写以实现自动同步
+            // 添加新链接
             async addLink() {
                 if (!this.checkAuth()) return;
                 
@@ -780,7 +855,6 @@
                 };
 
                 this.links.push(newLink);
-                this.saveLinks();
                 this.renderLinks();
 
                 // 重置表单
@@ -792,31 +866,29 @@
                 await this.saveToCloud();
             }
 
-            // 删除博客文章 - 重写以实现自动同步
+            // 删除博客文章
             async deleteBlogPost(id) {
                 if (!this.checkAuth()) return;
                 
                 if (confirm('确定要删除这篇备忘录吗？')) {
                     this.blogPosts = this.blogPosts.filter(post => post.id !== id);
-                    this.saveBlogPosts();
                     this.renderBlogPosts();
                     await this.saveToCloud();
                 }
             }
 
-            // 删除链接 - 重写以实现自动同步
+            // 删除链接
             async deleteLink(id) {
                 if (!this.checkAuth()) return;
                 
                 if (confirm('确定要删除这个链接吗？')) {
                     this.links = this.links.filter(link => link.id !== id);
-                    this.saveLinks();
                     this.renderLinks();
                     await this.saveToCloud();
                 }
             }
 
-            // 编辑博客文章 - 重写以实现自动同步
+            // 编辑博客文章
             async editBlogPost(id) {
                 if (!this.checkAuth()) return;
                 
@@ -826,13 +898,12 @@
                 const newContent = prompt('编辑内容:', post.content);
                 if (newContent !== null) {
                     post.content = newContent;
-                    this.saveBlogPosts();
                     this.renderBlogPosts();
                     await this.saveToCloud();
                 }
             }
 
-            // 编辑链接 - 重写以实现自动同步
+            // 编辑链接
             async editLink(id) {
                 if (!this.checkAuth()) return;
                 
@@ -849,7 +920,6 @@
                         link.name = newName;
                         link.url = newUrl;
                         link.remark = newRemark;
-                        this.saveLinks();
                         this.renderLinks();
                         await this.saveToCloud();
                     } catch (e) {
